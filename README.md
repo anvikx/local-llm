@@ -74,11 +74,11 @@ This document summarizes experimental results analyzing quantization formats (**
 
 | **Model**                  | **Size (GiB) PY** | **Parameters (PY)** | **Backend (PY)** | **NGL (PY)** | **Threads (PY)** | **Benchmark (PY)** | **Speed (t/s) PY** |
 | -------------------------- | ----------------- | ------------------- | ---------------- | ------------ | ---------------- | ------------------ | ------------------ |
-| **Qwen2 3B Q2_K (Medium)** | 1.28 GiB          | 3.40 B              | Vulkan           | 0            | 8                | pp512              | 1242.85 ± 46.20    |
+| **Qwen2.5 3B Q2_K (Medium)** | 1.28 GiB          | 3.40 B              | Vulkan           | 0            | 8                | pp512              | 1242.85 ± 46.20    |
 |                            |                   |                     |                  |              |                  | tg128              | 20.37 ± 2.79       |
-| **Qwen2 3B Q4_K_M**        | 1.95 GiB          | 3.40 B              | Vulkan           | 0            | 8                | pp512              | 1071.13 ± 20.38    |
+| **Qwen2.5 3B Q4_K_M**        | 1.95 GiB          | 3.40 B              | Vulkan           | 0            | 8                | pp512              | 1071.13 ± 20.38    |
 |                            |                   |                     |                  |              |                  | tg128              | 15.93 ± 1.22       |
-| **Qwen2 3B Q8_0**          | 3.36 GiB          | 3.40 B              | Vulkan           | 0            | 8                | pp512              | 729.88 ± 43.15     |
+| **Qwen2.5 3B Q8_0**          | 3.36 GiB          | 3.40 B              | Vulkan           | 0            | 8                | pp512              | 729.88 ± 43.15     |
 |                            |                   |                     |                  |              |                  | tg128              | 9.98 ± 0.45        |
 
 #### RAM Consumption by Context Length (Context Scaling)
