@@ -285,7 +285,7 @@ assert longest_unique_substring(None) == 0
 assert longest_unique_substring(12345) == 0
 """,
     },
-    {
+{
         "id": 7,
         "name": "parse_config",
         "prompt": """
@@ -317,21 +317,21 @@ Do not access files, network, subprocesses, or the operating system.
 """,
         "tests": """
 assert parse_config(
-    "name=Alice\\nage=20"
+    "name=Alice\nage=20"
 ) == {
     "name": "Alice",
     "age": "20",
 }
 
 assert parse_config(
-    " name = Alice \\n age = 20 "
+    " name = Alice \n age = 20 "
 ) == {
     "name": "Alice",
     "age": "20",
 }
 
 assert parse_config(
-    "# comment\\nname=Alice\\n\\nage=20"
+    "# comment\nname=Alice\n\nage=20"
 ) == {
     "name": "Alice",
     "age": "20",
@@ -344,19 +344,19 @@ assert parse_config(
 }
 
 assert parse_config(
-    "name=Alice\\nname=Bob"
+    "name=Alice\nname=Bob"
 ) == {
     "name": "Bob",
 }
 
 assert parse_config(
-    "=invalid\\nvalid=yes\\ninvalid_line"
+    "=invalid\nvalid=yes\ninvalid_line"
 ) == {
     "valid": "yes",
 }
 
 assert parse_config("") == {}
-assert parse_config("   \\n # hello\\n ") == {}
+assert parse_config("   \n # hello\n ") == {}
 
 assert parse_config(None) == {}
 assert parse_config(123) == {}
@@ -374,7 +374,7 @@ assert parse_config(
 }
 
 assert parse_config(
-    "a=1\\n\\nb=2\\n# comment\\nc=3"
+    "a=1\n\nb=2\n# comment\nc=3"
 ) == {
     "a": "1",
     "b": "2",
@@ -470,7 +470,7 @@ assert top_k_frequent_words(
 ) == ["y", "z"]
 """,
     },
-    {
+{
         "id": 9,
         "name": "resolve_dependencies",
         "prompt": """
@@ -479,18 +479,14 @@ Write a Python function called resolve_dependencies(dependencies).
 dependencies is a dictionary where each key is a package name and
 its value is a list of packages that must be installed before it.
 
-Return a valid installation order containing every package.
-
-Requirements:
-- If multiple packages are available at the same time, choose the
-  alphabetically smallest package.
-- Packages that only appear as dependencies but not as dictionary keys
-  must also be included.
+Return a valid installation order containing every package using Lexicographical Topological Sort (Kahn's algorithm):
+- At each step, among all packages that currently have all their dependencies satisfied (in-degree 0), pick the alphabetically smallest package next.
+- Packages that only appear as dependencies but not as dictionary keys must also be included in the resolution.
 - If there is a dependency cycle, return [].
 - If dependencies is not a dictionary, return [].
-- If a dependency list is invalid, treat it as an empty list.
+- If a dependency list is invalid or not a list, treat it as an empty list.
 - Package names are strings.
-- Do not use imports.
+- Do not use imports (do not import heapq or collections).
 
 Examples:
 {
