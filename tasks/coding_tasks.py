@@ -557,7 +557,7 @@ assert resolve_dependencies({
 }) == ["external_a", "external_b", "app"]
 """,
     },
-    {
+{
         "id": 10,
         "name": "lru_simulate",
         "prompt": """
@@ -586,6 +586,7 @@ Additional rules:
 - If capacity <= 0, no values can be stored and every get returns None.
 - Ignore malformed operations.
 - If capacity is not an integer, return [].
+- If operations is not a list, return [].
 - The key can be any hashable value.
 - Do not use imports.
 - Do not modify the operations list.
