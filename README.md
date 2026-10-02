@@ -89,7 +89,7 @@ This document summarizes experimental results analyzing quantization formats (**
 | **Q4_K_M**              | 2,224 MiB               | 2,446 MiB               | +222 MiB                 |
 | **Q8_0**                | 3,735 MiB               | 3,891 MiB               | +156 MiB                 |
 
-##### Hardware & Environment Specifications
+#### Hardware & Environment Specifications
 
 * **Operating System (OS)**: Microsoft Windows 11 Home Single Language 64-bit (PowerShell runtime)
 * **Processor (CPU)**: 11th Gen Intel(R) Core(TM) i5-11400H @ 2.70GHz (6 Cores / 12 Logical Processors), configured with 8 execution threads (`-t 8`)[cite: 1]
@@ -100,7 +100,7 @@ This document summarizes experimental results analyzing quantization formats (**
 * **System Memory (RAM)**: 32 GB (DDR4)
 * **llama.cpp Version / Build**: `0.5.0-dev` (build `11193`, commit `4e7481175`), built with Clang 20.1.8 for Windows x86_64
 
-##### Memory (RAM) Measurement Methodology
+#### Memory (RAM) Measurement Methodology
 
 * **Measurement Tools**: Resident Working Set monitored via Windows PowerShell (`Get-Process -Name "llama-cli" | Select-Object WorkingSet`) alongside runtime initialization memory buffer allocations (`model`, `kv self`, and `compute buffer`) reported by `llama-cli` / `llama-bench`.
 
@@ -110,73 +110,44 @@ This document summarizes experimental results analyzing quantization formats (**
   2. Repeat the process using context length `-c 8192` with identical hardware parameters.
   3. Compute empirical memory scaling:
 
-$
-\Delta \mathrm{RAM}
-=
-\mathrm{RAM}_{8K}
--
-\mathrm{RAM}_{2K}
-$
-```
- to observe KV Cache growth.
-```
+     **ΔRAM = RAM₈ᴷ − RAM₂ᴷ**
 
-##### Theoretical KV Cache Calculation
+     to observe KV Cache growth.
+
+#### Theoretical KV Cache Calculation
 
 The FP16 Key-Value (KV) Cache size is determined by:
 
-$
-\mathrm{Memory}_{\mathrm{KV}}
-=
-2
-\times
-n_{\mathrm{layers}}
-\times
-n_{\mathrm{heads}}
-\times
-d_{\mathrm{head}}
-\times
-c
-\times
-\mathrm{bytes}_{\mathrm{per\ element}}
-$
+**Memoryₖᵥ = 2 × nₗₐᵧₑᵣₛ × nₕₑₐdₛ × dₕₑₐd × c × bytesₚₑᵣ ₑₗₑₘₑₙₜ**
 
 Where:
 
-* $n_{\mathrm{layers}}$: Number of transformer decoder layers
-* $n_{\mathrm{heads}}$: Number of key-value query/cache heads (GQA heads)
-* $d_{\mathrm{head}}$: Dimension per attention head
-* $c$: Target context length in tokens
-* $\mathrm{bytes}_{\mathrm{per\ element}}$: Precision byte size ($2$ bytes for FP16)
+* **nₗₐᵧₑᵣₛ**: Number of transformer decoder layers
+* **nₕₑₐdₛ**: Number of key-value query/cache heads (GQA heads)
+* **dₕₑₐd**: Dimension per attention head
+* **c**: Target context length in tokens
+* **bytesₚₑᵣ ₑₗₑₘₑₙₜ**: Precision byte size (`2 bytes` for FP16)
 
 For the **Qwen2.5-3B** architecture:
 
-* $n_{\mathrm{layers}} = 36$
-* $n_{\mathrm{heads}} = 2$
-* $d_{\mathrm{head}} = 128$
-* $\mathrm{bytes}_{\mathrm{per\ element}} = 2$ bytes (FP16)
+* **nₗₐᵧₑᵣₛ = 36**
+* **nₕₑₐdₛ = 2**
+* **dₕₑₐd = 128**
+* **bytesₚₑᵣ ₑₗₑₘₑₙₜ = 2 bytes (FP16)**
 
 **Theoretical Memory Allocations:**
 
-* At 2,048 tokens ($2\mathrm{K}$): $\approx \mathbf{72\ MiB}$
-* At 8,192 tokens ($8\mathrm{K}$): $\approx \mathbf{288\ MiB}$
-* Theoretical growth:
+* At 2,048 tokens (`2K`): **≈ 72 MiB**
+* At 8,192 tokens (`8K`): **≈ 288 MiB**
+* Theoretical growth: **Δ ≈ 216 MiB**
 
-$$
-\Delta \approx \mathbf{216\ MiB}
-$$
-
-representing a $4\times$ increase in KV capacity.
+This represents a **4× increase in KV Cache capacity**.
 
 **Measured Empirical Results:**
 
-* **`Q2_K` & `Q4_K_M`**: Increased by **222 MiB**, aligning with the theoretical derivation of 216 MiB ($\pm 6$ MiB overhead from graph allocators).
+* **`Q2_K` & `Q4_K_M`**: Increased by **222 MiB**, aligning with the theoretical derivation of 216 MiB (**±6 MiB** overhead from graph allocators).
 * **`Q8_0`**: Increased by **156 MiB**, attributed to memory pooling, buffer fragmentation, and runtime workspace reuse under elevated memory pressure.
 
-**Measured Empirical Results:**
-
-* **`Q2_K` & `Q4_K_M`**: Increased by **222 MiB**, aligning with the theoretical derivation of 216 MiB ($\pm 6\text{ MiB}$ overhead from graph allocators).
-* **`Q8_0`**: Increased by **156 MiB**, attributed to memory pooling, buffer fragmentation, and runtime workspace reuse under elevated memory pressure.
 
 ### 2.4 General Capability Evaluation (6-Prompt Set)
 
