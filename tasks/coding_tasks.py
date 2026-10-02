@@ -18,7 +18,7 @@ Return only the function code.
 Do not use imports.
 Do not access files, network, subprocesses, or the operating system.
 """,
-        "tests": """
+        "tests": r"""
 assert normalize_whitespace("hello   world") == "hello world"
 assert normalize_whitespace("  hello   world  ") == "hello world"
 assert normalize_whitespace("hello\t\tworld") == "hello world"
@@ -315,7 +315,7 @@ Return only the function code.
 Do not use imports.
 Do not access files, network, subprocesses, or the operating system.
 """,
-        "tests": """
+        "tests": r"""
 assert parse_config(
     "name=Alice\nage=20"
 ) == {
@@ -700,7 +700,7 @@ assert lru_simulate(
         ("get", "b"),
         ("get", "c"),
     ],
-) == [None, None, 3]
+) == [None, 2, 3]
 
 assert lru_simulate(
     3,
