@@ -196,7 +196,7 @@ assert merge_intervals(
 ) == [[1, 3], [5, 6]]
 """,
     },
-    {
+{
         "id": 5,
         "name": "two_sum_safe",
         "prompt": """
@@ -205,14 +205,14 @@ Write a Python function called two_sum_safe(nums, target).
 Return the indices of two distinct elements whose values add up to target.
 
 Requirements:
-- Return the first valid pair encountered when scanning from left to right.
-- Return the indices as a list [i, j].
+- Return the indices as a list [i, j] such that i < j.
+- If multiple pairs exist, return the pair with the smallest first index i. If there is still a tie, return the one with the smallest second index j.
 - If no pair exists, return [].
 - Do not use the same element twice.
 - If nums is not a list, return [].
 - If target is not an int or float, return [].
 - The input list may contain duplicate values.
-- Preserve the order of the indices.
+- Preserve the order of the indices (i.e., i < j).
 
 Examples:
 [2,7,11,15], 9 -> [0,1]
