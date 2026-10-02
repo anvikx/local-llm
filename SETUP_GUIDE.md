@@ -89,7 +89,7 @@ huggingface-cli download Qwen/Qwen2.5-Coder-3B-Instruct-GGUF \
 Navigate to the project root:
 
 ```powershell
-cd D:\Jobs\Projects\local-llm
+cd D:\local-llm
 ```
 
 ### Run the Base Model (`Qwen2.5-3B`)
