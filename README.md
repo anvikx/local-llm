@@ -110,14 +110,13 @@ This document summarizes experimental results analyzing quantization formats (**
   2. Repeat the process using context length `-c 8192` with identical hardware parameters.
   3. Compute empirical memory scaling:
 
-$$
+$
 \Delta \mathrm{RAM}
 =
 \mathrm{RAM}_{8K}
 -
 \mathrm{RAM}_{2K}
-$$
-
+$
 ```
  to observe KV Cache growth.
 ```
@@ -126,7 +125,7 @@ $$
 
 The FP16 Key-Value (KV) Cache size is determined by:
 
-$$
+$
 \mathrm{Memory}_{\mathrm{KV}}
 =
 2
@@ -140,7 +139,7 @@ d_{\mathrm{head}}
 c
 \times
 \mathrm{bytes}_{\mathrm{per\ element}}
-$$
+$
 
 Where:
 
