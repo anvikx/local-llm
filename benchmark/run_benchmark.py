@@ -135,155 +135,137 @@ def run_llama(
     return result.stdout, tokens_per_sec
 
 
-def run_tests(
-    code: str,
-    tests: str,
-) -> tuple[int, int, list[str]]:
-    """
-    Run generated code against every assert independently.
+# -----------------------------------------------------------------------------
+# Isolated Test Runner Script (Executed via Subprocess for Safety & Timeout)
+# -----------------------------------------------------------------------------
+RUNNER_SCRIPT = r"""
+import ast
+import json
+import sys
 
-    Returns:
-        passed_count,
-        total_count,
-        details
-    """
+def execute():
+    try:
+        with open(sys.argv[1], "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        print(json.dumps({"passed": 0, "total": 0, "details": [f"TEST_RUNNER_ERROR: {e}"]}))
+        return
 
-    # ---------------------------------------------------------
-    # 1. Validate generated Python code
-    # ---------------------------------------------------------
+    code = data["code"]
+    tests = data["tests"]
 
+    # 1. Parse tests to get total assert count first
+    try:
+        test_tree = ast.parse(tests)
+        assert_nodes = [node for node in test_tree.body if isinstance(node, ast.Assert)]
+        total_tests = len(assert_nodes)
+    except Exception as exc:
+        print(json.dumps({"passed": 0, "total": 0, "details": [f"TEST_SYNTAX_ERROR: {exc}"]}))
+        return
+
+    if total_tests == 0:
+        print(json.dumps({"passed": 0, "total": 0, "details": ["NO_ASSERT_TESTS_FOUND"]}))
+        return
+
+    # 2. Parse and validate generated code syntax
     try:
         code_tree = ast.parse(code)
     except SyntaxError as exc:
-        return (
-            0,
-            0,
-            [f"SYNTAX_ERROR: {exc}"],
-        )
+        # Crucial fix: return 0 passed out of total_tests instead of (0, 0)
+        details = [f"SYNTAX_ERROR: {exc}"] + [f"TEST {i+1}: FAIL - SyntaxError" for i in range(total_tests)]
+        print(json.dumps({"passed": 0, "total": total_tests, "details": details}))
+        return
 
-    # ---------------------------------------------------------
-    # 2. Parse test file
-    # ---------------------------------------------------------
-
-    try:
-        test_tree = ast.parse(tests)
-    except SyntaxError as exc:
-        return (
-            0,
-            0,
-            [f"TEST_SYNTAX_ERROR: {exc}"],
-        )
-
-    # ---------------------------------------------------------
-    # 3. Extract every assert statement
-    # ---------------------------------------------------------
-
-    assert_nodes = [
-        node
-        for node in test_tree.body
-        if isinstance(node, ast.Assert)
-    ]
-
-    total_tests = len(assert_nodes)
-
-    if total_tests == 0:
-        return (
-            0,
-            0,
-            ["NO_ASSERT_TESTS_FOUND"],
-        )
-
-    # ---------------------------------------------------------
-    # 4. Execute generated code once
-    # ---------------------------------------------------------
-
+    # 3. Execute generated code in isolated namespace
     namespace = {}
-
     try:
-        compiled_code = compile(
-            code_tree,
-            "<generated_code>",
-            "exec",
-        )
-
+        compiled_code = compile(code_tree, "", "exec")
         exec(compiled_code, namespace)
-
     except Exception as exc:
-        error = (
-            f"{type(exc).__name__}: {exc}"
-        )
+        error = f"{type(exc).__name__}: {exc}"
+        details = [f"TEST {i+1}: FAIL - {error}" for i in range(total_tests)]
+        print(json.dumps({"passed": 0, "total": total_tests, "details": details}))
+        return
 
-        return (
-            0,
-            total_tests,
-            [
-                f"TEST {i + 1}: FAIL - {error}"
-                for i in range(total_tests)
-            ],
-        )
-
-    # ---------------------------------------------------------
-    # 5. Run every assert independently
-    # ---------------------------------------------------------
-
+    # 4. Evaluate each assert independently
     passed_count = 0
     details = []
 
-    for index, assert_node in enumerate(
-        assert_nodes,
-        start=1,
-    ):
+    for index, assert_node in enumerate(assert_nodes, start=1):
         try:
-            # Convert:
-            #
-            # assert foo(...) == ...
-            #
-            # into:
-            #
-            # foo(...) == ...
-            #
-
-            expression = ast.Expression(
-                body=assert_node.test
-            )
-
-            compiled_test = compile(
-                expression,
-                f"<test_{index}>",
-                "eval",
-            )
-
-            result = eval(
-                compiled_test,
-                namespace,
-            )
-
+            expr = ast.Expression(body=assert_node.test)
+            compiled_test = compile(expr, f"", "eval")
+            result = eval(compiled_test, namespace)
             if result:
                 passed_count += 1
-
-                details.append(
-                    f"TEST {index}: PASS"
-                )
-
+                details.append(f"TEST {index}: PASS")
             else:
-                details.append(
-                    f"TEST {index}: FAIL - assertion returned False"
+                details.append(f"TEST {index}: FAIL - assertion returned False")
+        except Exception as exc:
+            details.append(f"TEST {index}: FAIL - {type(exc).__name__}: {exc}")
+
+    print(json.dumps({"passed": passed_count, "total": total_tests, "details": details}))
+
+if __name__ == "__main__":
+    execute()
+"""
+
+
+def run_tests(
+    code: str,
+    tests: str,
+    timeout_sec: int = 5,
+) -> tuple[int, int, list[str]]:
+    """
+    Run generated code against every assert in a separate subprocess with timeout.
+    """
+    # Pre-calculate total tests from tests string for fallback
+    fallback_total = 0
+    try:
+        tree = ast.parse(tests)
+        fallback_total = sum(1 for node in tree.body if isinstance(node, ast.Assert))
+    except Exception:
+        pass
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_data = {"code": code, "tests": tests}
+        input_file = Path(tmpdir) / "payload.json"
+        runner_file = Path(tmpdir) / "runner.py"
+
+        input_file.write_text(json.dumps(input_data), encoding="utf-8")
+        runner_file.write_text(RUNNER_SCRIPT, encoding="utf-8")
+
+        try:
+            proc = subprocess.run(
+                [sys.executable, str(runner_file), str(input_file)],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=timeout_sec,
+            )
+
+            if proc.returncode != 0:
+                return (
+                    0,
+                    fallback_total,
+                    [f"CRASH_ERROR: {proc.stderr.strip()}"],
                 )
 
-        except Exception as exc:
-            error = (
-                f"{type(exc).__name__}: {exc}"
-            )
+            data = json.loads(proc.stdout.strip())
+            return (data["passed"], data["total"], data["details"])
 
-            details.append(
-                f"TEST {index}: FAIL - {error}"
+        except subprocess.TimeoutExpired:
+            return (
+                0,
+                fallback_total,
+                [f"TIMEOUT_ERROR: Execution exceeded {timeout_sec}s"],
             )
-
-    return (
-        passed_count,
-        total_tests,
-        details,
-    )
+        except Exception as e:
+            return (
+                0,
+                fallback_total,
+                [f"RUNNER_EXCEPTION: {e}"],
+            )
 
 
 def benchmark_model(
