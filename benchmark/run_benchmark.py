@@ -633,6 +633,31 @@ def main():
         help="Output directory.",
     )
 
+    # Bổ sung tham số cấu hình phần cứng và token sinh ra
+    parser.add_argument(
+        "--threads",
+        "-t",
+        type=int,
+        default=8,
+        help="Number of CPU threads (default: 8).",
+    )
+
+    parser.add_argument(
+        "--n-gpu-layers",
+        "-ngl",
+        type=int,
+        default=0,
+        help="Number of GPU layers offloaded (default: 0).",
+    )
+
+    parser.add_argument(
+        "--max-tokens",
+        "-n",
+        type=int,
+        default=1024,
+        help="Maximum output tokens to generate (default: 1024).",
+    )
+
     args = parser.parse_args()
 
     output_dir = Path(
@@ -648,9 +673,12 @@ def main():
         overall_test_pass_rate,
         average_tokens_per_sec,
     ) = benchmark_model(
-        args.model_name,
-        args.model,
-        output_dir,
+        model_name=args.model_name,
+        model_path=args.model,
+        output_dir=output_dir,
+        threads=args.threads,
+        ngl=args.n_gpu_layers,
+        max_tokens=args.max_tokens,
     )
 
     result_file = (
@@ -683,4 +711,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
