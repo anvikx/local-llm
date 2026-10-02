@@ -110,56 +110,69 @@ This document summarizes experimental results analyzing quantization formats (**
   2. Repeat the process using context length `-c 8192` with identical hardware parameters.
   3. Compute empirical memory scaling:
 
-     $$
-     \Delta \text{RAM}
-     =
-     \text{RAM}_{@8K}
-     -
-     \text{RAM}_{@2K}
-     $$
+$$
+\Delta \mathrm{RAM}
+=
+\mathrm{RAM}_{8K}
+-
+\mathrm{RAM}_{2K}
+$$
 
-     to observe KV Cache growth.
+```
+ to observe KV Cache growth.
+```
 
 ##### Theoretical KV Cache Calculation
 
 The FP16 Key-Value (KV) Cache size is determined by:
 
 $$
-\text{Memory}_{\text{KV}}
+\mathrm{Memory}_{\mathrm{KV}}
 =
 2
 \times
-n_{\text{layers}}
+n_{\mathrm{layers}}
 \times
-n_{\text{heads}}
+n_{\mathrm{heads}}
 \times
-d_{\text{head}}
+d_{\mathrm{head}}
 \times
 c
 \times
-\text{bytes}_{\text{per element}}
+\mathrm{bytes}_{\mathrm{per\ element}}
 $$
 
 Where:
 
-* $n_{\text{layers}}$: Number of transformer decoder layers
-* $n_{\text{heads}}$: Number of key-value query/cache heads (GQA heads)
-* $d_{\text{head}}$: Dimension per attention head
+* $n_{\mathrm{layers}}$: Number of transformer decoder layers
+* $n_{\mathrm{heads}}$: Number of key-value query/cache heads (GQA heads)
+* $d_{\mathrm{head}}$: Dimension per attention head
 * $c$: Target context length in tokens
-* $\text{bytes}_{\text{per element}}$: Precision byte size ($2\text{ bytes}$ for FP16)
+* $\mathrm{bytes}_{\mathrm{per\ element}}$: Precision byte size ($2$ bytes for FP16)
 
 For the **Qwen2.5-3B** architecture:
 
-* $n_{\text{layers}} = 36$
-* $n_{\text{heads}} = 2$
-* $d_{\text{head}} = 128$
-* $\text{bytes}_{\text{per element}} = 2\text{ bytes (FP16)}$
+* $n_{\mathrm{layers}} = 36$
+* $n_{\mathrm{heads}} = 2$
+* $d_{\mathrm{head}} = 128$
+* $\mathrm{bytes}_{\mathrm{per\ element}} = 2$ bytes (FP16)
 
 **Theoretical Memory Allocations:**
 
-* At 2,048 tokens ($2\text{K}$): $\approx \mathbf{72\text{ MiB}}$
-* At 8,192 tokens ($8\text{K}$): $\approx \mathbf{288\text{ MiB}}$
-* Theoretical growth: $\Delta \approx \mathbf{216\text{ MiB}}$ (representing a $4\times$ increase in KV capacity)
+* At 2,048 tokens ($2\mathrm{K}$): $\approx \mathbf{72\ MiB}$
+* At 8,192 tokens ($8\mathrm{K}$): $\approx \mathbf{288\ MiB}$
+* Theoretical growth:
+
+$$
+\Delta \approx \mathbf{216\ MiB}
+$$
+
+representing a $4\times$ increase in KV capacity.
+
+**Measured Empirical Results:**
+
+* **`Q2_K` & `Q4_K_M`**: Increased by **222 MiB**, aligning with the theoretical derivation of 216 MiB ($\pm 6$ MiB overhead from graph allocators).
+* **`Q8_0`**: Increased by **156 MiB**, attributed to memory pooling, buffer fragmentation, and runtime workspace reuse under elevated memory pressure.
 
 **Measured Empirical Results:**
 
