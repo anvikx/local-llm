@@ -89,37 +89,82 @@ This document summarizes experimental results analyzing quantization formats (**
 | **Q4_K_M**              | 2,224 MiB               | 2,446 MiB               | +222 MiB                 |
 | **Q8_0**                | 3,735 MiB               | 3,891 MiB               | +156 MiB                 |
 
+##### Hardware & Environment Specifications
+
+* **Operating System (OS)**: Microsoft Windows 11 Home Single Language 64-bit (PowerShell runtime)
+* **Processor (CPU)**: 11th Gen Intel(R) Core(TM) i5-11400H @ 2.70GHz (6 Cores / 12 Logical Processors), configured with 8 execution threads (`-t 8`)[cite: 1]
+* **Graphics Processor (GPU)**: 
+  * Integrated: Intel(R) UHD Graphics
+  * Dedicated: NVIDIA GeForce RTX 3050 Laptop GPU
+  * *Benchmark Configuration*: Vulkan runtime backend (`-ngl 0` — CPU-only execution for standardized benchmarking)[cite: 1]
+* **System Memory (RAM)**: 32 GB (DDR4)
+* **llama.cpp Version / Build**: `0.5.0-dev` (build `11193`, commit `4e7481175`), built with Clang 20.1.8 for Windows x86_64
+
+##### Memory (RAM) Measurement Methodology
+
+* **Measurement Tools**: Resident Working Set monitored via Windows PowerShell (`Get-Process -Name "llama-cli" | Select-Object WorkingSet`) alongside runtime initialization memory buffer allocations (`model`, `kv self`, and `compute buffer`) reported by `llama-cli` / `llama-bench`.
+
+* **Context Scaling Procedure**:
+
+  1. Initialize the inference engine with context length `-c 2048`, feed prompt inputs, and log the steady-state Resident Working Set.
+  2. Repeat the process using context length `-c 8192` with identical hardware parameters.
+  3. Compute empirical memory scaling:
+
+     $$
+     \Delta \text{RAM}
+     =
+     \text{RAM}_{@8K}
+     -
+     \text{RAM}_{@2K}
+     $$
+
+     to observe KV Cache growth.
+
 ##### Theoretical KV Cache Calculation
 
-The FP16 KV Cache size follows the formula:
+The FP16 Key-Value (KV) Cache size is determined by:
 
 $$
 \text{Memory}_{\text{KV}}
 =
-2 \times n_{\text{layers}}
-\times n_{\text{heads}}
-\times d_{\text{head}}
-\times c
-\times \text{bytes\_per\_element}
+2
+\times
+n_{\text{layers}}
+\times
+n_{\text{heads}}
+\times
+d_{\text{head}}
+\times
+c
+\times
+\text{bytes}_{\text{per element}}
 $$
 
-For the Qwen2.5-3B architecture:
+Where:
+
+* $n_{\text{layers}}$: Number of transformer decoder layers
+* $n_{\text{heads}}$: Number of key-value query/cache heads (GQA heads)
+* $d_{\text{head}}$: Dimension per attention head
+* $c$: Target context length in tokens
+* $\text{bytes}_{\text{per element}}$: Precision byte size ($2\text{ bytes}$ for FP16)
+
+For the **Qwen2.5-3B** architecture:
 
 * $n_{\text{layers}} = 36$
 * $n_{\text{heads}} = 2$
 * $d_{\text{head}} = 128$
-* FP16 = 2 bytes
+* $\text{bytes}_{\text{per element}} = 2\text{ bytes (FP16)}$
 
-The resulting theoretical memory usage is:
+**Theoretical Memory Allocations:**
 
-* At 2,048 tokens (2K): approximately **72 MiB**
-* At 8,192 tokens (8K): approximately **288 MiB**
-* Theoretical increase: $\Delta \approx 216$ MiB, representing a 4× increase in KV-cache capacity.
+* At 2,048 tokens ($2\text{K}$): $\approx \mathbf{72\text{ MiB}}$
+* At 8,192 tokens ($8\text{K}$): $\approx \mathbf{288\text{ MiB}}$
+* Theoretical growth: $\Delta \approx \mathbf{216\text{ MiB}}$ (representing a $4\times$ increase in KV capacity)
 
-**Measured results:**
+**Measured Empirical Results:**
 
-* Q2_K and Q4_K_M increased by **222 MiB**, closely matching the theoretical calculation.
-* Q8_0 increased by **156 MiB**, attributed in the source results to runtime buffer fragmentation and reuse under higher memory pressure.
+* **`Q2_K` & `Q4_K_M`**: Increased by **222 MiB**, aligning with the theoretical derivation of 216 MiB ($\pm 6\text{ MiB}$ overhead from graph allocators).
+* **`Q8_0`**: Increased by **156 MiB**, attributed to memory pooling, buffer fragmentation, and runtime workspace reuse under elevated memory pressure.
 
 ### 2.4 General Capability Evaluation (6-Prompt Set)
 
