@@ -272,11 +272,15 @@ def benchmark_model(
     model_name: str,
     model_path: str,
     output_dir: Path,
+    threads: int = 8,
+    ngl: int = 0,
+    max_tokens: int = 1024,
 ):
     print()
     print("=" * 70)
-    print(f"MODEL: {model_name}")
-    print(f"PATH : {model_path}")
+    print(f"MODEL  : {model_name}")
+    print(f"PATH   : {model_path}")
+    print(f"CONFIG : -t {threads} | -ngl {ngl} | -n {max_tokens}")
     print("=" * 70)
 
     results = []
@@ -303,12 +307,15 @@ def benchmark_model(
         try:
 
             # -------------------------------------------------
-            # 1. Run LLM
+            # 1. Run LLM với cấu hình cố định
             # -------------------------------------------------
 
             raw_output, tokens_per_sec = run_llama(
                 model_path,
                 task["prompt"],
+                threads=threads,
+                ngl=ngl,
+                max_tokens=max_tokens,
             )
 
             # -------------------------------------------------
@@ -332,7 +339,7 @@ def benchmark_model(
             )
 
             # -------------------------------------------------
-            # 4. Run individual tests
+            # 4. Run individual tests (đã có timeout & subprocess)
             # -------------------------------------------------
 
             (
@@ -342,6 +349,7 @@ def benchmark_model(
             ) = run_tests(
                 code,
                 task["tests"],
+                timeout_sec=5,
             )
 
             # -------------------------------------------------
@@ -365,7 +373,6 @@ def benchmark_model(
                 and test_passed == test_total
             ):
                 status = "PASS"
-
             else:
                 status = "FAIL"
 
@@ -392,8 +399,20 @@ def benchmark_model(
             message = str(exc)[:500]
 
             test_passed = 0
-            test_total = 0
+
+            # SỬA LỖI MẪU SỐ: Đếm số lượng assert thực tế để tính phạt đúng
+            try:
+                task_tree = ast.parse(task["tests"])
+                test_total = sum(
+                    1
+                    for node in task_tree.body
+                    if isinstance(node, ast.Assert)
+                )
+            except Exception:
+                test_total = 0
+
             task_pass_rate = 0.0
+            test_details = [f"TASK_ERROR: {message}"]
 
         # -----------------------------------------------------
         # Print task result
@@ -424,7 +443,7 @@ def benchmark_model(
             failed_tests = [
                 detail
                 for detail in test_details
-                if "FAIL" in detail
+                if "FAIL" in detail or "ERROR" in detail
             ] if "test_details" in locals() else []
 
             for detail in failed_tests[:5]:
@@ -464,7 +483,7 @@ def benchmark_model(
         fully_passed_tasks
         / len(TASKS)
         * 100
-    )
+    ) if TASKS else 0.0
 
     # Total test cases
     total_tests = sum(
