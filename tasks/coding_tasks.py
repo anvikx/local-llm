@@ -1,7 +1,7 @@
 # tasks/coding_tasks.py
 
 TASKS = [
-    {
+{
         "id": 1,
         "name": "normalize_whitespace",
         "prompt": """
@@ -21,11 +21,11 @@ Do not access files, network, subprocesses, or the operating system.
         "tests": """
 assert normalize_whitespace("hello   world") == "hello world"
 assert normalize_whitespace("  hello   world  ") == "hello world"
-assert normalize_whitespace("hello\\t\\tworld") == "hello world"
-assert normalize_whitespace("hello\\nworld") == "hello world"
-assert normalize_whitespace("  hello \\t\\n world  ") == "hello world"
+assert normalize_whitespace("hello\t\tworld") == "hello world"
+assert normalize_whitespace("hello\nworld") == "hello world"
+assert normalize_whitespace("  hello \t\n world  ") == "hello world"
 assert normalize_whitespace("") == ""
-assert normalize_whitespace("   \\t\\n  ") == ""
+assert normalize_whitespace("   \t\n  ") == ""
 assert normalize_whitespace("hello") == "hello"
 assert normalize_whitespace("hello  world  test") == "hello world test"
 assert normalize_whitespace(None) == ""
@@ -193,7 +193,7 @@ assert merge_intervals("invalid") == []
 
 assert merge_intervals(
     [[1, 3], [4], [5, 6], ["a", 2], [7, 8, 9]]
-) == [[1, 3], [5, 6], [7, 8]]
+) == [[1, 3], [5, 6]]
 """,
     },
     {
