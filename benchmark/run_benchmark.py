@@ -1,8 +1,11 @@
 import argparse
 import ast
 import csv
+import json
+import os
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -65,6 +68,9 @@ def extract_code(output: str) -> str:
 def run_llama(
     model_path: str,
     prompt: str,
+    threads: int = 8,
+    ngl: int = 0,
+    max_tokens: int = 1024,
 ) -> tuple[str, float]:
     """
     Run llama-cli and return:
@@ -82,7 +88,11 @@ def run_llama(
         "--temp",
         "0",
         "-n",
-        "256",
+        str(max_tokens),
+        "-t",
+        str(threads),
+        "-ngl",
+        str(ngl),
         "--single-turn",
         "--no-display-prompt",
     ]
@@ -93,7 +103,7 @@ def run_llama(
         text=True,
         encoding="utf-8",
         errors="replace",
-        timeout=120,
+        timeout=180,
     )
 
     if result.returncode != 0:
