@@ -1,4 +1,4 @@
-# Qwen2 / Qwen2.5 3B Benchmark & Evaluation Report
+# Qwen2.5-3B / Qwen2.5-Coder-3B Benchmark & Evaluation Report
 
 A comprehensive benchmark and evaluation suite analyzing **Quantization Formats (Q2_K, Q4_K_M, Q8_0)**, inference speeds, memory footprints (RAM & KV Cache scaling), and coding capabilities (**Qwen2.5-3B-Instruct vs. Qwen2.5-Coder-3B-Instruct**).
 
